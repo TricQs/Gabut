@@ -557,7 +557,22 @@
     <div class="screen" id="win-screen">
       <div id="win-title">ESCAPED</div>
       <div class="screen-msg">You found the exit. For now…</div>
-      <button class="btn" id="restart-btn-win">PLAY AGAIN</button>
+      <div style="display: flex; flex-direction: column; gap: 12px; align-items: center;">
+        <button class="btn" id="restart-btn-win">PLAY AGAIN</button>
+        <button class="btn" id="menu-btn-win" style="background: #222; color: #888; border: 1px solid #333; margin-top: 5px; padding: 10px 30px; font-size: 11px; letter-spacing: 2px;">BACK TO MENU</button>
+      </div>
+    </div>
+
+    <div class="screen" id="pause-screen" style="display: none; background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(8px); z-index: 150;">
+      <div class="screen-title" style="font-family: 'Creepster', serif; font-size: 64px; color: #c8a84b; text-shadow: 0 0 20px rgba(200, 168, 75, 0.8);">PAUSED</div>
+      <div style="margin-bottom: 30px; display: flex; flex-direction: column; align-items: center; gap: 10px;">
+        <div style="font-size: 12px; letter-spacing: 2px; color: rgba(255, 255, 255, 0.5);">VOLUME</div>
+        <input type="range" id="volume-slider-backrooms" min="0" max="100" value="70" style="width: 200px; accent-color: #c8a84b; cursor: pointer;">
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 12px; align-items: center;">
+        <button class="btn" id="resume-btn-backrooms">RESUME</button>
+        <button class="btn" id="menu-btn-pause-backrooms" style="background: #222; color: #888; border: 1px solid #333; margin-top: 5px; padding: 10px 30px; font-size: 11px; letter-spacing: 2px;">BACK TO MENU</button>
+      </div>
     </div>
   </div>
 
@@ -1626,6 +1641,7 @@
       document.getElementById('start-screen').style.display = 'none';
       document.getElementById('gameover-screen').style.display = 'none';
       document.getElementById('win-screen').style.display = 'none';
+      document.getElementById('pause-screen').style.display = 'none';
       document.getElementById('hud').style.display = 'block';
       document.getElementById('ability-hud').style.opacity = '0';
       document.getElementById('crystal-notify').style.opacity = '0';
@@ -1634,6 +1650,18 @@
       initAudio();
       gameState = 'playing';
       if (animFrameId) cancelAnimationFrame(animFrameId);
+      lastTime = performance.now();
+      animFrameId = requestAnimationFrame(gameLoop);
+    }
+
+    function pauseGame() {
+      gameState = 'paused';
+      document.getElementById('pause-screen').style.display = 'flex';
+    }
+
+    function resumeGame() {
+      document.getElementById('pause-screen').style.display = 'none';
+      gameState = 'playing';
       lastTime = performance.now();
       animFrameId = requestAnimationFrame(gameLoop);
     }
@@ -1704,6 +1732,15 @@
       document.addEventListener('pointerlockchange', () => {
         pointerLocked = document.pointerLockElement === canvas;
         rawMouseDX = 0;
+        if (pointerLocked) {
+          if (gameState === 'paused') {
+            resumeGame();
+          }
+        } else {
+          if (gameState === 'playing') {
+            pauseGame();
+          }
+        }
       });
       document.addEventListener('mousemove', e => {
         if (pointerLocked) rawMouseDX += e.movementX;
@@ -1774,6 +1811,25 @@
       document.getElementById('restart-btn-go').addEventListener('click', startGame);
       document.getElementById('restart-btn-win').addEventListener('click', startGame);
       document.getElementById('audio-btn').addEventListener('click', toggleAudio);
+
+      document.getElementById('menu-btn-start').addEventListener('click', () => { window.location.href = 'index.html'; });
+      document.getElementById('menu-btn-go').addEventListener('click', () => { window.location.href = 'index.html'; });
+      document.getElementById('menu-btn-win').addEventListener('click', () => { window.location.href = 'index.html'; });
+
+      document.getElementById('resume-btn-backrooms').addEventListener('click', () => {
+        canvas.requestPointerLock();
+      });
+      document.getElementById('menu-btn-pause-backrooms').addEventListener('click', () => {
+        window.location.href = 'index.html';
+      });
+      document.getElementById('volume-slider-backrooms').addEventListener('input', e => {
+        const val = parseFloat(e.target.value) / 100;
+        if (masterGain && audioCtx) {
+          masterGain.gain.setValueAtTime(val * 0.55, audioCtx.currentTime);
+          audioMuted = val === 0;
+          document.getElementById('audio-btn').textContent = (audioMuted ? '🔇' : '🔊') + ' AUDIO';
+        }
+      });
 
       requestAnimationFrame(animateStartScreen);
     }

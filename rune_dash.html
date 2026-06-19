@@ -335,9 +335,20 @@
                         <span id="final-rank" class="stat-value">D</span>
                     </div>
                 </div>
+                </div>
+            </div>
+
+            <!-- Pause Screen -->
+            <div id="pause-screen" class="overlay hidden">
+                <h1 class="title">SYSTEM PAUSED</h1>
+                <p class="subtitle">TIMELINE SUSPENDED</p>
+                <div style="margin-bottom: 30px; display: flex; flex-direction: column; align-items: center; gap: 10px;">
+                    <span style="font-family: 'Orbitron', sans-serif; font-size: 0.9rem; color: rgba(255, 255, 255, 0.6); letter-spacing: 1px;">VOLUME</span>
+                    <input type="range" id="volume-slider-runedash" min="0" max="100" value="80" style="width: 200px; accent-color: #00ffff; cursor: pointer;">
+                </div>
                 <div style="display: flex; gap: 15px; align-items: center; justify-content: center; width: 100%;">
-                    <button id="restart-btn" class="btn btn-danger">REBOOT SYSTEM</button>
-                    <button id="menu-btn-go" class="btn" style="background: #222; color: #888; border: 1px solid #333; box-shadow: none;">BACK TO MENU</button>
+                    <button id="resume-btn" class="btn">RESUME SYSTEM</button>
+                    <button id="menu-btn-pause" class="btn" style="background: #222; color: #888; border: 1px solid #333; box-shadow: none;">BACK TO MENU</button>
                 </div>
             </div>
         </div>
@@ -976,6 +987,32 @@
             window.focus();
         }
 
+        function pauseGame() {
+            if (gameState !== 'playing') return;
+            gameState = 'paused';
+            document.getElementById('pause-screen').classList.remove('hidden');
+            if (audioCtx) audioCtx.suspend();
+            if (schedulerTimer) {
+                clearInterval(schedulerTimer);
+                schedulerTimer = null;
+            }
+        }
+
+        function resumeGame() {
+            if (gameState !== 'paused') return;
+            document.getElementById('pause-screen').classList.add('hidden');
+            if (audioCtx) {
+                audioCtx.resume().then(() => {
+                    nextNoteTime = audioCtx.currentTime + 0.05;
+                    if (schedulerTimer) clearInterval(schedulerTimer);
+                    schedulerTimer = setInterval(scheduler, lookahead);
+                });
+            }
+            gameState = 'playing';
+            lastTime = performance.now();
+            requestAnimationFrame(gameLoop);
+        }
+
         // Target Lock-On System (Closest active rune to the right of player)
         function getTargetEnemy() {
             let target = null;
@@ -1063,6 +1100,17 @@
         // --- KEYBOARD & VISIBILITY LISTENERS ---
 
         window.addEventListener('keydown', (e) => {
+            // Escape key toggles Pause state
+            if (e.key === 'Escape') {
+                e.preventDefault();
+                if (gameState === 'playing') {
+                    pauseGame();
+                } else if (gameState === 'paused') {
+                    resumeGame();
+                }
+                return;
+            }
+
             if (gameState !== 'playing') return;
             
             // Trap navigation keys to prevent browser scroll
@@ -1129,6 +1177,17 @@
             
             document.getElementById('menu-btn-start').addEventListener('click', () => { window.location.href = 'index.html'; });
             document.getElementById('menu-btn-go').addEventListener('click', () => { window.location.href = 'index.html'; });
+
+            document.getElementById('resume-btn').addEventListener('click', resumeGame);
+            document.getElementById('menu-btn-pause').addEventListener('click', () => { window.location.href = 'index.html'; });
+            document.getElementById('volume-slider-runedash').addEventListener('input', e => {
+                const val = parseFloat(e.target.value) / 100;
+                if (masterGain && audioCtx) {
+                    masterGain.gain.setValueAtTime(val * 0.4, audioCtx.currentTime);
+                    muted = val === 0;
+                    document.getElementById('mute-icon').textContent = muted ? '🔇' : '🔊';
+                }
+            });
             
             // Draw preliminary aesthetic scene before clicking Start
             initStars();
