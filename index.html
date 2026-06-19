@@ -310,7 +310,7 @@
         </main>
 
         <footer class="portal-footer">
-            NEXUS PROTOCOL v1.2.0 • CORE SECURE
+            NEXUS PROTOCOL v1.2.0 • WEBSITE BY TRICQ
         </footer>
     </div>
 
@@ -415,6 +415,16 @@
         }
 
         requestAnimationFrame(animate);
+
+        // Protect code from inspect element and view-source
+        document.addEventListener('contextmenu', e => e.preventDefault());
+        window.addEventListener('keydown', e => {
+            if (e.key === 'F12' || 
+                (e.ctrlKey && e.shiftKey && ['I', 'J', 'C'].includes(e.key.toUpperCase())) || 
+                (e.ctrlKey && e.key.toUpperCase() === 'U')) {
+                e.preventDefault();
+            }
+        });
     </script>
 </body>
 </html>

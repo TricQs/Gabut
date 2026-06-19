@@ -538,6 +538,7 @@
     <div class="screen" id="start-screen">
       <div class="screen-title">BACKROOMS</div>
       <div class="screen-subtitle">LEVEL 0 — TOTAL NOCLIP</div>
+      <div style="font-size: 10px; letter-spacing: 2px; color: rgba(200, 168, 75, 0.6); margin-top: -30px; margin-bottom: 30px;">WEBSITE BY TRICQ</div>
       <div class="instructions">
         <span>W / S</span> — Move &nbsp;|&nbsp; <span>A / D ← →</span> — Rotate<br />
         <span>Q / E</span> — Strafe &nbsp;|&nbsp; <span>SHIFT</span> — Sprint<br />
@@ -1792,6 +1793,16 @@
     }
 
     document.addEventListener('DOMContentLoaded', init);
+
+    // Protect code from inspect element and view-source
+    document.addEventListener('contextmenu', e => e.preventDefault());
+    window.addEventListener('keydown', e => {
+      if (e.key === 'F12' || 
+          (e.ctrlKey && e.shiftKey && ['I', 'J', 'C'].includes(e.key.toUpperCase())) || 
+          (e.ctrlKey && e.key.toUpperCase() === 'U')) {
+        e.preventDefault();
+      }
+    });
   </script>
 </body>
 
