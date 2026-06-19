@@ -538,6 +538,7 @@
     <div class="screen" id="start-screen">
       <div class="screen-title">BACKROOMS</div>
       <div class="screen-subtitle">LEVEL 0 — TOTAL NOCLIP</div>
+      <div style="font-size: 10px; letter-spacing: 2px; color: rgba(200, 168, 75, 0.6); margin-top: -30px; margin-bottom: 30px;">WEBSITE BY TRICQ</div>
       <div class="instructions">
         <span>W / S</span> — Move &nbsp;|&nbsp; <span>A / D ← →</span> — Rotate<br />
         <span>Q / E</span> — Strafe &nbsp;|&nbsp; <span>SHIFT</span> — Sprint<br />
@@ -545,13 +546,19 @@
         Find <span class="ck">Red Crystals ◆</span> — press <span>F</span> to reveal The Entity.<br />
         Reach the <span style="color:#00ffa0">GLOWING GREEN WALL</span> to escape.
       </div>
-      <button class="btn" id="start-btn">ENTER THE BACKROOMS</button>
+      <div style="display: flex; flex-direction: column; gap: 12px; align-items: center;">
+        <button class="btn" id="start-btn">ENTER THE BACKROOMS</button>
+        <button class="btn" id="menu-btn-start" style="background: #222; color: #888; border: 1px solid #333; margin-top: 5px; padding: 10px 30px; font-size: 11px; letter-spacing: 2px;">BACK TO MENU</button>
+      </div>
     </div>
 
     <div class="screen" id="gameover-screen">
       <div id="gameover-title">YOU DIED</div>
       <div class="screen-msg" id="gameover-msg">The Entity has consumed you.</div>
-      <button class="btn" id="restart-btn-go">TRY AGAIN</button>
+      <div style="display: flex; flex-direction: column; gap: 12px; align-items: center;">
+        <button class="btn" id="restart-btn-go">TRY AGAIN</button>
+        <button class="btn" id="menu-btn-go" style="background: #222; color: #888; border: 1px solid #333; margin-top: 5px; padding: 10px 30px; font-size: 11px; letter-spacing: 2px;">BACK TO MENU</button>
+      </div>
     </div>
 
     <div class="screen" id="win-screen">
