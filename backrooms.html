@@ -1,0 +1,1798 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>THE BACKROOMS — Level 0</title>
+  <meta name="description"
+    content="Survive the infinite liminal spaces of The Backrooms. A first-person horror survival game." />
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Creepster&display=swap');
+
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --yellow: #c8a84b;
+      --dark: #0a0a0a;
+      --font-mono: 'Share Tech Mono', 'Courier New', monospace;
+    }
+
+    body {
+      background: #000;
+      color: #fff;
+      font-family: var(--font-mono);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      overflow: hidden;
+      user-select: none;
+    }
+
+    #game-wrapper {
+      position: relative;
+      width: 800px;
+      height: 600px;
+      overflow: hidden;
+    }
+
+    #gameCanvas {
+      display: block;
+      image-rendering: pixelated;
+    }
+
+    #noise {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      opacity: 0;
+      mix-blend-mode: overlay;
+    }
+
+    #vignette {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: radial-gradient(ellipse at center,
+          transparent 40%, rgba(0, 0, 0, 0.55) 75%, rgba(0, 0, 0, 0.92) 100%);
+      pointer-events: none;
+    }
+
+    #hud {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      display: none;
+    }
+
+    #hud-bars {
+      position: absolute;
+      bottom: 20px;
+      left: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .bar-container {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .bar-label {
+      font-size: 11px;
+      letter-spacing: 2px;
+      width: 60px;
+      text-shadow: 0 0 8px currentColor;
+    }
+
+    .bar-label.sanity {
+      color: #8addf4;
+    }
+
+    .bar-label.stamina {
+      color: #b8f48a;
+    }
+
+    .bar-track {
+      width: 120px;
+      height: 8px;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .bar-fill {
+      height: 100%;
+      border-radius: 4px;
+      transition: width 0.2s linear;
+    }
+
+    #sanity-fill {
+      background: linear-gradient(90deg, #1a6a88, #8addf4);
+    }
+
+    #stamina-fill {
+      background: linear-gradient(90deg, #1a4a0a, #b8f48a);
+    }
+
+    #compass {
+      position: absolute;
+      top: 16px;
+      right: 20px;
+      font-size: 11px;
+      letter-spacing: 2px;
+      color: rgba(200, 168, 75, 0.6);
+      text-shadow: 0 0 6px rgba(200, 168, 75, 0.4);
+    }
+
+    #coords {
+      position: absolute;
+      top: 36px;
+      right: 20px;
+      font-size: 10px;
+      letter-spacing: 1px;
+      color: rgba(200, 168, 75, 0.4);
+    }
+
+    #floor-number {
+      position: absolute;
+      top: 16px;
+      left: 20px;
+      font-size: 11px;
+      letter-spacing: 3px;
+      color: rgba(200, 168, 75, 0.5);
+    }
+
+    #entity-warning {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 13px;
+      letter-spacing: 4px;
+      color: #ff2200;
+      text-shadow: 0 0 20px #ff2200;
+      opacity: 0;
+      transition: opacity 0.3s;
+      pointer-events: none;
+    }
+
+    /* ===== MINIMAP ===== */
+    #minimap-wrap {
+      position: absolute;
+      bottom: 16px;
+      right: 16px;
+      width: 160px;
+      height: 200px;
+      pointer-events: none;
+    }
+
+    #minimap-frame {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(160deg, #1a1a2e, #0d0d1a);
+      border: 2px solid #2a2a4a;
+      border-radius: 10px;
+      box-shadow: 0 0 0 1px rgba(100, 100, 200, 0.15), inset 0 0 20px rgba(0, 0, 0, 0.8), 0 4px 20px rgba(0, 0, 0, 0.6);
+    }
+
+    #minimap-header {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 30px;
+      background: linear-gradient(90deg, #12122a, #1e1e3a, #12122a);
+      border-bottom: 1px solid #2a2a50;
+      border-radius: 8px 8px 0 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      letter-spacing: 3px;
+      color: #aaa8ff;
+      text-shadow: 0 0 8px #8880ff;
+    }
+
+    #minimap-canvas {
+      position: absolute;
+      top: 30px;
+      left: 4px;
+      width: 152px;
+      height: 166px;
+      border-radius: 0 0 8px 8px;
+    }
+
+    #minimap-mask {
+      position: absolute;
+      top: 30px;
+      left: 4px;
+      width: 152px;
+      height: 166px;
+      border-radius: 0 0 8px 8px;
+      box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.7);
+      pointer-events: none;
+    }
+
+    /* ===== ABILITY HUD ===== */
+    #ability-hud {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.4s;
+    }
+
+    #ability-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 8px;
+      background: radial-gradient(circle at 40% 35%, #ff4466, #cc1133 50%, #6a0020);
+      border: 2px solid #ff6688;
+      box-shadow: 0 0 12px rgba(255, 50, 80, 0.6), 0 0 30px rgba(200, 0, 40, 0.3);
+      position: relative;
+      overflow: hidden;
+    }
+
+    #ability-icon::before {
+      content: '';
+      position: absolute;
+      top: 6px;
+      left: 8px;
+      width: 10px;
+      height: 14px;
+      background: rgba(255, 200, 200, 0.35);
+      border-radius: 50% 50% 30% 30%;
+      transform: rotate(-20deg);
+    }
+
+    #ability-key {
+      font-size: 9px;
+      letter-spacing: 2px;
+      color: rgba(255, 150, 150, 0.7);
+    }
+
+    #ability-timer-bar {
+      width: 40px;
+      height: 3px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    #ability-timer-fill {
+      height: 100%;
+      width: 100%;
+      background: linear-gradient(90deg, #ff2244, #ff88aa);
+      border-radius: 2px;
+      transition: width 0.1s linear;
+    }
+
+    /* ===== AUDIO TOGGLE ===== */
+    #audio-btn {
+      position: absolute;
+      top: 58px;
+      left: 20px;
+      font-family: var(--font-mono);
+      font-size: 9px;
+      letter-spacing: 2px;
+      color: rgba(200, 168, 75, 0.5);
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      pointer-events: all;
+    }
+
+    #audio-btn:hover {
+      color: rgba(200, 168, 75, 0.9);
+    }
+
+    /* ===== CRYSTAL NOTIFY ===== */
+    #crystal-notify {
+      position: absolute;
+      top: 55%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 12px;
+      letter-spacing: 3px;
+      color: #ff6688;
+      text-shadow: 0 0 15px #ff2244, 0 0 30px rgba(200, 0, 40, 0.5);
+      opacity: 0;
+      text-align: center;
+      pointer-events: none;
+      transition: opacity 0.5s;
+    }
+
+    /* ===== REVEAL OVERLAY ===== */
+    #reveal-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: radial-gradient(ellipse at center, rgba(180, 0, 50, 0) 40%, rgba(180, 0, 50, 0.18) 80%, rgba(100, 0, 30, 0.35) 100%);
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    /* ===== SCREENS ===== */
+    .screen {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: #000;
+      z-index: 100;
+    }
+
+    .screen-title {
+      font-family: 'Creepster', 'Georgia', serif;
+      font-size: 64px;
+      letter-spacing: 6px;
+      color: var(--yellow);
+      text-shadow: 0 0 20px rgba(200, 168, 75, 0.8), 0 0 60px rgba(200, 168, 75, 0.3);
+      margin-bottom: 6px;
+      animation: flicker-title 4s infinite;
+    }
+
+    .screen-subtitle {
+      font-size: 13px;
+      letter-spacing: 8px;
+      color: rgba(200, 168, 75, 0.45);
+      margin-bottom: 48px;
+    }
+
+    .instructions {
+      font-size: 12px;
+      letter-spacing: 1.5px;
+      line-height: 2.2;
+      color: rgba(255, 255, 255, 0.55);
+      text-align: center;
+      margin-bottom: 40px;
+      max-width: 480px;
+    }
+
+    .instructions span {
+      color: rgba(200, 168, 75, 0.85);
+    }
+
+    .instructions .ck {
+      color: #ff7799;
+    }
+
+    .btn {
+      padding: 14px 48px;
+      font-family: var(--font-mono);
+      font-size: 14px;
+      letter-spacing: 4px;
+      color: #000;
+      background: var(--yellow);
+      border: none;
+      cursor: pointer;
+      clip-path: polygon(8px 0%, 100% 0%, calc(100% - 8px) 100%, 0% 100%);
+      transition: all 0.2s;
+      text-transform: uppercase;
+    }
+
+    .btn:hover {
+      background: #e0c060;
+      box-shadow: 0 0 30px rgba(200, 168, 75, 0.6);
+      transform: scale(1.04);
+    }
+
+    #gameover-screen {
+      display: none;
+    }
+
+    #win-screen {
+      display: none;
+    }
+
+    #gameover-title {
+      font-family: 'Creepster', serif;
+      font-size: 72px;
+      color: #8b0000;
+      text-shadow: 0 0 30px #ff0000, 0 0 80px rgba(139, 0, 0, 0.5);
+      margin-bottom: 12px;
+      animation: pulse-red 1.5s ease-in-out infinite;
+    }
+
+    #win-title {
+      font-family: 'Creepster', serif;
+      font-size: 62px;
+      color: var(--yellow);
+      text-shadow: 0 0 30px rgba(200, 168, 75, 0.9);
+      margin-bottom: 12px;
+    }
+
+    .screen-msg {
+      font-size: 13px;
+      letter-spacing: 3px;
+      color: rgba(255, 255, 255, 0.5);
+      margin-bottom: 40px;
+    }
+
+    @keyframes flicker-title {
+
+      0%,
+      100% {
+        opacity: 1
+      }
+
+      92% {
+        opacity: 1
+      }
+
+      93% {
+        opacity: 0.3
+      }
+
+      94% {
+        opacity: 1
+      }
+
+      97% {
+        opacity: 0.6
+      }
+
+      98% {
+        opacity: 1
+      }
+    }
+
+    @keyframes pulse-red {
+
+      0%,
+      100% {
+        text-shadow: 0 0 30px #ff0000, 0 0 80px rgba(139, 0, 0, 0.5)
+      }
+
+      50% {
+        text-shadow: 0 0 50px #ff4400, 0 0 120px rgba(200, 0, 0, 0.7)
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div id="game-wrapper">
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
+    <canvas id="noise" width="800" height="600"></canvas>
+    <div id="vignette"></div>
+    <div id="reveal-overlay"></div>
+
+    <div id="hud">
+      <div id="floor-number">LEVEL 0 — THE BACKROOMS</div>
+      <div id="compass">N</div>
+      <div id="coords">0.0 / 0.0</div>
+      <button id="audio-btn" title="Toggle Audio">🔊 AUDIO</button>
+
+      <div id="hud-bars">
+        <div class="bar-container">
+          <span class="bar-label sanity">SANITY</span>
+          <div class="bar-track">
+            <div class="bar-fill" id="sanity-fill" style="width:100%"></div>
+          </div>
+        </div>
+        <div class="bar-container">
+          <span class="bar-label stamina">STAMINA</span>
+          <div class="bar-track">
+            <div class="bar-fill" id="stamina-fill" style="width:100%"></div>
+          </div>
+        </div>
+      </div>
+
+      <div id="entity-warning">IT KNOWS YOU ARE HERE</div>
+      <div id="crystal-notify">RED CRYSTAL OBTAINED<br /><span style="font-size:10px;color:rgba(255,100,120,0.6)">PRESS
+          F — MONSTER REVEAL</span></div>
+
+      <div id="ability-hud">
+        <div id="ability-icon"></div>
+        <div id="ability-timer-bar">
+          <div id="ability-timer-fill"></div>
+        </div>
+        <div id="ability-key">[ F ] REVEAL</div>
+      </div>
+
+      <div id="minimap-wrap">
+        <div id="minimap-frame"></div>
+        <div id="minimap-header">▲ SCANNER</div>
+        <canvas id="minimap-canvas" width="152" height="166"></canvas>
+        <div id="minimap-mask"></div>
+      </div>
+    </div>
+
+    <div class="screen" id="start-screen">
+      <div class="screen-title">BACKROOMS</div>
+      <div class="screen-subtitle">LEVEL 0 — TOTAL NOCLIP</div>
+      <div class="instructions">
+        <span>W / S</span> — Move &nbsp;|&nbsp; <span>A / D ← →</span> — Rotate<br />
+        <span>Q / E</span> — Strafe &nbsp;|&nbsp; <span>SHIFT</span> — Sprint<br />
+        <span>MOUSE</span> — Look (click canvas) &nbsp;|&nbsp; <span>F</span> — Reveal<br /><br />
+        Find <span class="ck">Red Crystals ◆</span> — press <span>F</span> to reveal The Entity.<br />
+        Reach the <span style="color:#00ffa0">GLOWING GREEN WALL</span> to escape.
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 12px; align-items: center;">
+        <button class="btn" id="start-btn">ENTER THE BACKROOMS</button>
+        <button class="btn" id="menu-btn-start" style="background: #222; color: #888; border: 1px solid #333; margin-top: 5px; padding: 10px 30px; font-size: 11px; letter-spacing: 2px;">BACK TO MENU</button>
+      </div>
+    </div>
+
+    <div class="screen" id="gameover-screen">
+      <div id="gameover-title">YOU DIED</div>
+      <div class="screen-msg" id="gameover-msg">The Entity has consumed you.</div>
+      <div style="display: flex; flex-direction: column; gap: 12px; align-items: center;">
+        <button class="btn" id="restart-btn-go">TRY AGAIN</button>
+        <button class="btn" id="menu-btn-go" style="background: #222; color: #888; border: 1px solid #333; margin-top: 5px; padding: 10px 30px; font-size: 11px; letter-spacing: 2px;">BACK TO MENU</button>
+      </div>
+    </div>
+
+    <div class="screen" id="win-screen">
+      <div id="win-title">ESCAPED</div>
+      <div class="screen-msg">You found the exit. For now…</div>
+      <div style="display: flex; flex-direction: column; gap: 12px; align-items: center;">
+        <button class="btn" id="restart-btn-win">PLAY AGAIN</button>
+        <button class="btn" id="menu-btn-win" style="background: #222; color: #888; border: 1px solid #333; margin-top: 5px; padding: 10px 30px; font-size: 11px; letter-spacing: 2px;">BACK TO MENU</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /* ============================================================
+       THE BACKROOMS — Level 0
+       Raycasting FPS Horror  |  Web Audio API Soundscape
+       3D Scary Monster Sprite  |  Dark Deception Minimap
+       ============================================================ */
+    'use strict';
+
+    // ──────────────────────────────────────────────────────────────
+    // §1  CONSTANTS
+    // ──────────────────────────────────────────────────────────────
+    const W = 800, H = 600, HALF_H = H / 2;
+    const FOV = Math.PI / 3, HALF_FOV = FOV / 2;
+    const MAX_DEPTH = 24;
+    const MAP_W = 48, MAP_H = 48;
+
+    const MOVE_SPEED = 0.055, ROT_SPEED = 0.042, SPRINT_MULT = 1.85, PLAYER_RADIUS = 0.25;
+    const MOUSE_SENSITIVITY = 0.0015, MOUSE_MAX_PER_FRAME = 0.08;
+
+    const STAMINA_DRAIN = 0.0028, STAMINA_REGEN = 0.0014;
+    const SANITY_DRAIN = 0, SANITY_DARK_MUL = 4, SANITY_MONSTER = 0.00035;
+
+    const MONSTER_SPEED = 0.032, MONSTER_ALERT_DIST = 7, MONSTER_KILL_DIST = 0.6;
+    const MONSTER_WANDER_INTERVAL = 120;
+
+    const CRYSTAL_COUNT = 4, CRYSTAL_PICKUP_RADIUS = 0.9;
+    const REVEAL_DURATION = 30000, REVEAL_COOLDOWN = 60000;
+
+    const COL_CEILING_TOP = [28, 25, 22], COL_CEILING_BTM = [45, 41, 36];
+    const COL_FLOOR_TOP = [52, 44, 35], COL_FLOOR_BTM = [30, 25, 18];
+    const COL_FOG = [8, 6, 4];
+    const TEX_SIZE = 64, MSPRITE_SIZE = 128;
+
+    // ──────────────────────────────────────────────────────────────
+    // §2  GLOBAL STATE
+    // ──────────────────────────────────────────────────────────────
+    let canvas, ctx, noiseCanvas, noiseCtx, minimapCanvas, minimapCtx;
+    let gameState = 'start', lastTime = 0, animFrameId = null, frameCount = 0;
+
+    let player = {}, monster = {}, map = [], exitPos = { x: 0, y: 0 }, exitWallPos = { x: 0, y: 0 };
+    let crystals = [];
+    let revealActive = false, revealTimer = 0, revealCooldown = 0, crystalCount = 0, crystalNotifyTimer = 0;
+
+    const keys = {};
+    let rawMouseDX = 0, pointerLocked = false;
+
+    let flickerBrightness = 1.0, flickerTimer = 0;
+    let shakeX = 0, shakeY = 0, shakeIntensity = 0;
+    let noiseAlpha = 0, noiseImageData = null;
+    let pixelBuffer = null, pixelData = null;
+
+    // Textures
+    let wallTexture = null, exitTexture = null, crystalTexture = null;
+    // Monster sprite — pre-rendered offscreen canvas, then pixel-sampled
+    let monsterPixels = null;
+
+    // Footstep
+    let footstepCooldown = 0;
+
+    // ──────────────────────────────────────────────────────────────
+    // §3  MAP GENERATION
+    // ──────────────────────────────────────────────────────────────
+    function generateMap() {
+      const m = new Uint8Array(MAP_W * MAP_H).fill(1);
+      const cW = Math.floor((MAP_W - 1) / 2), cH = Math.floor((MAP_H - 1) / 2);
+      const vis = new Uint8Array(cW * cH), stack = [];
+      const ci = (cx, cy) => cy * cW + cx;
+      const mi = (mx, my) => my * MAP_W + mx;
+      const tm = (cx, cy) => ({ mx: cx * 2 + 1, my: cy * 2 + 1 });
+      vis[ci(1, 1)] = 1; stack.push({ cx: 1, cy: 1 });
+      const sm = tm(1, 1); m[mi(sm.mx, sm.my)] = 0;
+      const dirs = [{ dx: 0, dy: -1 }, { dx: 0, dy: 1 }, { dx: -1, dy: 0 }, { dx: 1, dy: 0 }];
+      while (stack.length > 0) {
+        const { cx, cy } = stack[stack.length - 1];
+        const sh = [...dirs].sort(() => Math.random() - 0.5);
+        let moved = false;
+        for (const d of sh) {
+          const nx = cx + d.dx, ny = cy + d.dy;
+          if (nx < 0 || nx >= cW || ny < 0 || ny >= cH || vis[ci(nx, ny)]) continue;
+          vis[ci(nx, ny)] = 1;
+          const cm = tm(cx, cy), nm = tm(nx, ny);
+          m[mi(cm.mx, cm.my)] = 0; m[mi(nm.mx, nm.my)] = 0;
+          m[mi(cm.mx + d.dx, cm.my + d.dy)] = 0;
+          stack.push({ cx: nx, cy: ny }); moved = true; break;
+        }
+        if (!moved) stack.pop();
+      }
+      // Extra loops
+      for (let y = 1; y < MAP_H - 1; y++) for (let x = 1; x < MAP_W - 1; x++) {
+        if (m[mi(x, y)] === 1 && Math.random() < 0.12) {
+          let o = 0;
+          if (m[mi(x - 1, y)] === 0) o++; if (m[mi(x + 1, y)] === 0) o++;
+          if (m[mi(x, y - 1)] === 0) o++; if (m[mi(x, y + 1)] === 0) o++;
+          if (o >= 2) m[mi(x, y)] = 0;
+        }
+      }
+      for (let x = 0; x < MAP_W; x++) { m[mi(x, 0)] = 1; m[mi(x, MAP_H - 1)] = 1; }
+      for (let y = 0; y < MAP_H; y++) { m[mi(0, y)] = 1; m[mi(MAP_W - 1, y)] = 1; }
+      return m;
+    }
+
+    function isWall(wx, wy) {
+      const mx = Math.floor(wx), my = Math.floor(wy);
+      if (mx < 0 || mx >= MAP_W || my < 0 || my >= MAP_H) return true;
+      return map[my * MAP_W + mx] === 1;
+    }
+
+    function randomOpen(excludeRadius, refX, refY) {
+      let att = 0;
+      while (att++ < 2000) {
+        const x = 1 + Math.floor(Math.random() * (MAP_W - 2));
+        const y = 1 + Math.floor(Math.random() * (MAP_H - 2));
+        if (map[y * MAP_W + x] === 0) {
+          if (refX === undefined) return { x: x + 0.5, y: y + 0.5 };
+          const dx = x + 0.5 - refX, dy = y + 0.5 - refY;
+          if (Math.sqrt(dx * dx + dy * dy) > excludeRadius) return { x: x + 0.5, y: y + 0.5 };
+        }
+      }
+      return { x: 3.5, y: 3.5 };
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    // §4  TEXTURE GENERATION
+    // ──────────────────────────────────────────────────────────────
+    function buildWallTexture() {
+      const td = new ImageData(TEX_SIZE, TEX_SIZE);
+      for (let y = 0; y < TEX_SIZE; y++) for (let x = 0; x < TEX_SIZE; x++) {
+        const i = (y * TEX_SIZE + x) * 4;
+        let r = 195, g = 165, b = 80;
+        const st = Math.sin((x / TEX_SIZE) * Math.PI * 8) * 0.5 + 0.5;
+        r += st * 22; g += st * 18; b += st * 8;
+        const ddx = (x % 16) - 8, ddy = (y % 16) - 8, dia = Math.abs(ddx) + Math.abs(ddy);
+        if (dia === 7 || dia === 8) { r -= 25; g -= 20; b -= 10; }
+        const ns = (Math.sin(x * 3.7 + y * 5.3) * 0.5 + 0.5) * 18 - (Math.sin(x * 7.1 - y * 2.9) * 0.5 + 0.5) * 10;
+        r += ns; g += ns * 0.8; b += ns * 0.3;
+        if (y % 7 === 0) { r -= 8; g -= 8; b -= 4; }
+        td.data[i] = Math.min(255, Math.max(0, r));
+        td.data[i + 1] = Math.min(255, Math.max(0, g));
+        td.data[i + 2] = Math.min(255, Math.max(0, b));
+        td.data[i + 3] = 255;
+      }
+      return td;
+    }
+
+    function buildExitTexture() {
+      const td = new ImageData(TEX_SIZE, TEX_SIZE);
+      for (let y = 0; y < TEX_SIZE; y++) for (let x = 0; x < TEX_SIZE; x++) {
+        const i = (y * TEX_SIZE + x) * 4;
+        let r = 10, g = 180, b = 120;
+        const ln = Math.floor(y / 4) % 2 === 0 ? 1 : 0.6;
+        r *= ln; g *= ln; b *= ln;
+        const ns = Math.random() * 30; r += ns * 0.2; g += ns * 0.5; b += ns * 0.4;
+        if (x < 3 || x >= TEX_SIZE - 3 || y < 3 || y >= TEX_SIZE - 3) { r = 0; g = 255; b = 180; }
+        td.data[i] = Math.min(255, r);
+        td.data[i + 1] = Math.min(255, g);
+        td.data[i + 2] = Math.min(255, b);
+        td.data[i + 3] = 255;
+      }
+      return td;
+    }
+
+    function buildCrystalTexture() {
+      const td = new ImageData(TEX_SIZE, TEX_SIZE);
+      for (let y = 0; y < TEX_SIZE; y++) for (let x = 0; x < TEX_SIZE; x++) {
+        const i = (y * TEX_SIZE + x) * 4;
+        const cx = x / TEX_SIZE - 0.5, cy = y / TEX_SIZE - 0.5;
+        const d = Math.sqrt(cx * cx + cy * cy);
+        if ((Math.abs(cx) + Math.abs(cy)) >= 0.38) { td.data[i + 3] = 0; continue; }
+        const fa = Math.floor(Math.atan2(cy, cx) * 3 / Math.PI) * 0.2;
+        const br = 0.6 + fa + (1 - d * 2) * 0.4;
+        let r = Math.floor(200 * br), g = Math.floor(18 * br), b = Math.floor(35 * br);
+        if (d < 0.12) { r = 255; g = 80; b = 80; }
+        const sp = Math.max(0, 1 - d * 3) * Math.sin((x / TEX_SIZE) * Math.PI) * Math.sin((y / TEX_SIZE) * Math.PI);
+        r = Math.min(255, r + sp * 120); g = Math.min(255, g + sp * 60); b = Math.min(255, b + sp * 60);
+        const sh = (Math.sin(x * 0.7) * Math.cos(y * 0.9)) * 0.5 + 0.5;
+        r = Math.min(255, r + sh * 30);
+        td.data[i] = Math.min(255, Math.max(0, r));
+        td.data[i + 1] = Math.min(255, Math.max(0, g));
+        td.data[i + 2] = Math.min(255, Math.max(0, b));
+        td.data[i + 3] = 255;
+      }
+      return td;
+    }
+
+    /**
+     * Builds a scary 3D-looking monster sprite by drawing to an offscreen
+     * canvas using Canvas 2D API, then pre-sampling pixels into a buffer
+     * so the raycaster can sample it without any per-frame canvas operations.
+     */
+    function buildMonsterSprite() {
+      const SZ = MSPRITE_SIZE;
+      const mc = document.createElement('canvas');
+      mc.width = mc.height = SZ;
+      const c = mc.getContext('2d');
+      const cx = SZ / 2, cy = SZ / 2;
+
+      // ── Clear to transparent ──
+      c.clearRect(0, 0, SZ, SZ);
+
+      // ── Body: tall dark humanoid silhouette with gradient ──
+      const bodyG = c.createRadialGradient(cx, cy * 0.9, 8, cx, cy * 0.7, SZ * 0.48);
+      bodyG.addColorStop(0, 'rgba(25,3,10,1)');
+      bodyG.addColorStop(0.55, 'rgba(12,1,5,0.95)');
+      bodyG.addColorStop(1, 'rgba(0,0,0,0)');
+      c.save();
+      c.beginPath();
+      c.moveTo(cx, cy * 0.06);
+      c.bezierCurveTo(cx + 38, cy * 0.04, cx + 75, cy * 0.32, cx + 68, cy * 0.72);
+      c.bezierCurveTo(cx + 88, cy * 0.92, cx + 58, SZ * 0.92, cx + 28, SZ * 0.97);
+      c.lineTo(cx - 28, SZ * 0.97);
+      c.bezierCurveTo(cx - 58, SZ * 0.92, cx - 88, cy * 0.92, cx - 68, cy * 0.72);
+      c.bezierCurveTo(cx - 75, cy * 0.32, cx - 38, cy * 0.04, cx, cy * 0.06);
+      c.fillStyle = bodyG;
+      c.fill();
+      c.restore();
+
+      // ── Neck / shoulders shading ──
+      const neckG = c.createRadialGradient(cx, cy * 0.6, 0, cx, cy * 0.6, 42);
+      neckG.addColorStop(0, 'rgba(35,5,15,0.85)');
+      neckG.addColorStop(1, 'rgba(0,0,0,0)');
+      c.beginPath();
+      c.ellipse(cx, cy * 0.6, 38, 48, 0, 0, Math.PI * 2);
+      c.fillStyle = neckG;
+      c.fill();
+
+      // ── Skin-like face area (pale grey-purple) ──
+      const faceG = c.createRadialGradient(cx, cy * 0.42, 0, cx, cy * 0.42, 40);
+      faceG.addColorStop(0, 'rgba(55,28,35,1)');
+      faceG.addColorStop(0.6, 'rgba(30,12,18,0.9)');
+      faceG.addColorStop(1, 'rgba(0,0,0,0)');
+      c.beginPath();
+      c.ellipse(cx, cy * 0.42, 36, 44, 0, 0, Math.PI * 2);
+      c.fillStyle = faceG;
+      c.fill();
+
+      // ── Veins / texture lines on face ──
+      c.strokeStyle = 'rgba(80,20,30,0.4)'; c.lineWidth = 0.8;
+      for (let v = 0; v < 6; v++) {
+        const vx = cx + (Math.random() - 0.5) * 30, vy = cy * 0.3 + (Math.random() - 0.5) * 20;
+        c.beginPath();
+        c.moveTo(vx, vy);
+        c.bezierCurveTo(vx + (Math.random() - 0.5) * 15, vy + 8, vx + (Math.random() - 0.5) * 15, vy + 15, vx + (Math.random() - 0.5) * 10, vy + 22);
+        c.stroke();
+      }
+
+      // ── Glowing RED EYES (the key horror feature) ──
+      const eyes = [[cx - 14, cy * 0.36], [cx + 14, cy * 0.36]];
+      for (const [ex, ey] of eyes) {
+        // Outer red corona
+        const eg = c.createRadialGradient(ex, ey, 0, ex, ey, 16);
+        eg.addColorStop(0, 'rgba(255,20,0,1)');
+        eg.addColorStop(0.35, 'rgba(200,0,0,0.7)');
+        eg.addColorStop(0.7, 'rgba(120,0,0,0.3)');
+        eg.addColorStop(1, 'rgba(60,0,0,0)');
+        c.beginPath();
+        c.ellipse(ex, ey, 16, 13, 0, 0, Math.PI * 2);
+        c.fillStyle = eg;
+        c.fill();
+        // Iris
+        const ig = c.createRadialGradient(ex, ey, 0, ex, ey, 6);
+        ig.addColorStop(0, 'rgba(255,230,200,1)');
+        ig.addColorStop(0.25, 'rgba(255,80,0,1)');
+        ig.addColorStop(0.7, 'rgba(160,0,0,1)');
+        ig.addColorStop(1, 'rgba(60,0,0,1)');
+        c.beginPath();
+        c.ellipse(ex, ey, 6, 8, 0, 0, Math.PI * 2);
+        c.fillStyle = ig;
+        c.fill();
+        // Vertical slit pupil
+        c.beginPath();
+        c.ellipse(ex, ey, 1.8, 7, 0, 0, Math.PI * 2);
+        c.fillStyle = '#000'; c.fill();
+        // Specular dot
+        c.beginPath();
+        c.arc(ex - 2, ey - 3, 1.5, 0, Math.PI * 2);
+        c.fillStyle = 'rgba(255,255,200,0.9)'; c.fill();
+      }
+
+      // ── Nose: two dark nostrils ──
+      c.fillStyle = 'rgba(0,0,0,0.7)';
+      c.beginPath(); c.ellipse(cx - 5, cy * 0.52, 3.5, 2.5, Math.PI * 0.1, 0, Math.PI * 2); c.fill();
+      c.beginPath(); c.ellipse(cx + 5, cy * 0.52, 3.5, 2.5, -Math.PI * 0.1, 0, Math.PI * 2); c.fill();
+
+      // ── Mouth: open with jagged teeth ──
+      const mY = cy * 0.62;
+      // Mouth cavity (dark interior)
+      c.beginPath();
+      c.moveTo(cx - 25, mY);
+      c.bezierCurveTo(cx - 25, mY - 4, cx + 25, mY - 4, cx + 25, mY);
+      c.bezierCurveTo(cx + 25, mY + 18, cx - 25, mY + 18, cx - 25, mY);
+      c.fillStyle = 'rgba(5,0,3,0.95)'; c.fill();
+
+      // Blood drips inside
+      c.fillStyle = 'rgba(140,0,20,0.6)';
+      for (let d = 0; d < 3; d++) {
+        const dx2 = cx - 12 + d * 12, dy2 = mY + 10;
+        c.beginPath(); c.ellipse(dx2, dy2, 1.5, 3, 0, 0, Math.PI * 2); c.fill();
+      }
+
+      // Teeth (upper)
+      c.fillStyle = 'rgba(200,185,170,0.95)';
+      for (let t = -4; t <= 4; t += 2) {
+        const tx = cx + t * 5.5, ty = mY - 1;
+        const th = 6 + Math.random() * 3;
+        c.beginPath();
+        c.moveTo(tx - 3, ty); c.lineTo(tx, ty - th); c.lineTo(tx + 3, ty);
+        c.closePath(); c.fill();
+      }
+      // Teeth (lower)
+      c.fillStyle = 'rgba(180,165,150,0.85)';
+      for (let t = -3; t <= 3; t += 2) {
+        const tx = cx + t * 5.5 + 2, ty = mY + 14;
+        const th = 4 + Math.random() * 3;
+        c.beginPath();
+        c.moveTo(tx - 2.5, ty); c.lineTo(tx, ty + th); c.lineTo(tx + 2.5, ty);
+        c.closePath(); c.fill();
+      }
+
+      // ── Tendrils / appendages ──
+      for (let k = 0; k < 10; k++) {
+        const ang = (k / 10) * Math.PI * 2;
+        const r0 = 42 + Math.random() * 8;
+        const r1 = 70 + Math.random() * 40;
+        const ctrl = { x: cx + Math.cos(ang + 0.6) * r0 * 1.3, y: cy * 0.6 + Math.sin(ang + 0.6) * r0 * 0.7 };
+        const endX = cx + Math.cos(ang + 0.2) * r1;
+        const endY = cy * 0.6 + Math.sin(ang) * r1 * 0.55;
+        const alpha = 0.25 + Math.random() * 0.35;
+        c.beginPath();
+        c.moveTo(cx + Math.cos(ang) * r0, cy * 0.6 + Math.sin(ang) * r0 * 0.5);
+        c.quadraticCurveTo(ctrl.x, ctrl.y, endX, endY);
+        c.strokeStyle = `rgba(${50 + k * 8},${k * 2},${15 + k * 5},${alpha})`;
+        c.lineWidth = 2.5 - k * 0.15;
+        c.stroke();
+      }
+
+      // ── Crown of horns/spikes on head ──
+      c.fillStyle = 'rgba(20,4,10,0.95)';
+      const spikes = [[-22, 10], [-11, 18], [0, 22], [11, 18], [22, 10]];
+      for (const [ox, h] of spikes) {
+        const sx = cx + ox, sy = cy * 0.08;
+        c.beginPath();
+        c.moveTo(sx - 5, sy + h); c.lineTo(sx, sy); c.lineTo(sx + 5, sy + h);
+        c.closePath(); c.fill();
+      }
+      // Horn glow
+      const hornG = c.createRadialGradient(cx, cy * 0.06, 0, cx, cy * 0.06, 30);
+      hornG.addColorStop(0, 'rgba(100,0,30,0.15)');
+      hornG.addColorStop(1, 'rgba(0,0,0,0)');
+      c.fillStyle = hornG;
+      c.fillRect(cx - 35, 0, 70, cy * 0.25);
+
+      // ── 3D shading: dark edges, lighter centre ──
+      const sideShade = c.createLinearGradient(0, 0, SZ, 0);
+      sideShade.addColorStop(0, 'rgba(0,0,0,0.65)');
+      sideShade.addColorStop(0.25, 'rgba(0,0,0,0)');
+      sideShade.addColorStop(0.75, 'rgba(0,0,0,0)');
+      sideShade.addColorStop(1, 'rgba(0,0,0,0.65)');
+      c.fillStyle = sideShade;
+      c.fillRect(0, 0, SZ, SZ);
+
+      // Top/bottom gradient for depth
+      const topShade = c.createLinearGradient(0, 0, 0, SZ);
+      topShade.addColorStop(0, 'rgba(0,0,0,0.4)');
+      topShade.addColorStop(0.15, 'rgba(0,0,0,0)');
+      topShade.addColorStop(0.85, 'rgba(0,0,0,0)');
+      topShade.addColorStop(1, 'rgba(0,0,0,0.5)');
+      c.fillStyle = topShade;
+      c.fillRect(0, 0, SZ, SZ);
+
+      // Pre-sample all pixels into a flat array for fast runtime access
+      monsterPixels = c.getImageData(0, 0, SZ, SZ).data;
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    // §5  RAYCASTER (DDA)
+    // ──────────────────────────────────────────────────────────────
+    function castRay(ra, ox, oy) {
+      const rdx = Math.cos(ra), rdy = Math.sin(ra);
+      let mx = Math.floor(ox), my = Math.floor(oy);
+      const ddx = Math.abs(rdx) < 1e-10 ? 1e30 : Math.abs(1 / rdx);
+      const ddy = Math.abs(rdy) < 1e-10 ? 1e30 : Math.abs(1 / rdy);
+      let sdx, sdy, sx, sy;
+      if (rdx < 0) { sx = -1; sdx = (ox - mx) * ddx; } else { sx = 1; sdx = (mx + 1 - ox) * ddx; }
+      if (rdy < 0) { sy = -1; sdy = (oy - my) * ddy; } else { sy = 1; sdy = (my + 1 - oy) * ddy; }
+      let hit = false, side = 0;
+      for (let i = 0; i < MAX_DEPTH * 2 && !hit; i++) {
+        if (sdx < sdy) { sdx += ddx; mx += sx; side = 0; } else { sdy += ddy; my += sy; side = 1; }
+        if (mx < 0 || mx >= MAP_W || my < 0 || my >= MAP_H) { hit = true; break; }
+        if (map[my * MAP_W + mx] !== 0) hit = true;
+      }
+      let dist = side === 0 ? sdx - ddx : sdy - ddy;
+      if (dist <= 0) dist = 0.001;
+      let wx = side === 0 ? oy + dist * rdy : ox + dist * rdx;
+      wx -= Math.floor(wx);
+      return { dist, wallX: wx, side, mx, my, isExit: (map[my * MAP_W + mx] === 2) };
+    }
+
+    function sampleTex(tex, tx, ty) {
+      tx = Math.min(TEX_SIZE - 1, Math.max(0, Math.floor(tx * TEX_SIZE)));
+      ty = Math.min(TEX_SIZE - 1, Math.max(0, Math.floor(ty * TEX_SIZE)));
+      const idx = (ty * TEX_SIZE + tx) * 4;
+      return [tex.data[idx], tex.data[idx + 1], tex.data[idx + 2]];
+    }
+
+    function lerpCol(a, b, t) {
+      t = Math.max(0, Math.min(1, t));
+      return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    // §6  RENDER FRAME
+    // ──────────────────────────────────────────────────────────────
+    function renderFrame() {
+      const pd = pixelData;
+      const px = player.x + shakeX, py = player.y + shakeY, pa = player.angle;
+      const fl = flickerBrightness;
+
+      // Ceiling & floor gradient
+      for (let y = 0; y < H; y++) {
+        let cr, cg, cb;
+        if (y < HALF_H) { const t = y / HALF_H;[cr, cg, cb] = lerpCol(COL_CEILING_TOP, COL_CEILING_BTM, t); }
+        else { const t = (y - HALF_H) / HALF_H;[cr, cg, cb] = lerpCol(COL_FLOOR_TOP, COL_FLOOR_BTM, t); }
+        cr = Math.floor(cr * fl); cg = Math.floor(cg * fl); cb = Math.floor(cb * fl);
+        for (let x = 0; x < W; x++) { const i = (y * W + x) * 4; pd[i] = cr; pd[i + 1] = cg; pd[i + 2] = cb; pd[i + 3] = 255; }
+      }
+
+      // Walls
+      const zBuf = new Float32Array(W);
+      for (let col = 0; col < W; col++) {
+        const ra = pa - HALF_FOV + (col / W) * FOV;
+        const h = castRay(ra, px, py);
+        const { dist, wallX, side, isExit } = h;
+        zBuf[col] = dist;
+        const wH = Math.floor(H / dist);
+        const wT = Math.floor(HALF_H - wH / 2), wB = Math.floor(HALF_H + wH / 2);
+        const fog = Math.min(1, dist / MAX_DEPTH);
+        const br = (1 - fog * fog) * fl * (side === 1 ? 0.75 : 1.0);
+        const tex = isExit ? exitTexture : wallTexture;
+        for (let y = wT; y < wB; y++) {
+          if (y < 0 || y >= H) continue;
+          const tv = (y - wT) / wH;
+          const [tr, tg, tb] = sampleTex(tex, wallX, tv);
+          const fb = br;
+          const i = (y * W + col) * 4;
+          pd[i] = tr * fb + COL_FOG[0] * (1 - fb);
+          pd[i + 1] = tg * fb + COL_FOG[1] * (1 - fb);
+          pd[i + 2] = tb * fb + COL_FOG[2] * (1 - fb);
+          pd[i + 3] = 255;
+        }
+      }
+
+      renderCrystalSprites(px, py, pa, zBuf);
+      renderMonsterSprite(px, py, pa, zBuf);
+      ctx.putImageData(pixelBuffer, 0, 0);
+    }
+
+    function renderCrystalSprites(px, py, pa, zBuf) {
+      for (const c of crystals) {
+        if (c.collected) continue;
+        const dx = c.x - px, dy = c.y - py;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < 0.2 || dist > MAX_DEPTH) continue;
+        let rel = Math.atan2(dy, dx) - pa;
+        while (rel > Math.PI) rel -= Math.PI * 2;
+        while (rel < -Math.PI) rel += Math.PI * 2;
+        if (Math.abs(rel) > HALF_FOV + 0.3) continue;
+        const sX = Math.floor((0.5 + rel / FOV) * W);
+        const sprH = Math.max(1, Math.floor(H / dist * 0.4));
+        const sprW = sprH;
+        const dTop = Math.floor(HALF_H - sprH * 0.3);
+        const dLeft = sX - Math.floor(sprW / 2);
+        const fog = Math.min(1, dist / MAX_DEPTH);
+        const br = (1 - fog * fog) * flickerBrightness;
+        const pulse = 0.75 + Math.sin(frameCount * 0.08 + c.x) * 0.25;
+        for (let sx = 0; sx < sprW; sx++) {
+          const scrX = dLeft + sx;
+          if (scrX < 0 || scrX >= W || zBuf[scrX] < dist) continue;
+          const tu = sx / sprW;
+          for (let sy = 0; sy < sprH; sy++) {
+            const scrY = dTop + sy;
+            if (scrY < 0 || scrY >= H) continue;
+            const tv = sy / sprH;
+            const tx2 = Math.min(TEX_SIZE - 1, Math.max(0, Math.floor(tu * TEX_SIZE)));
+            const ty2 = Math.min(TEX_SIZE - 1, Math.max(0, Math.floor(tv * TEX_SIZE)));
+            const pi = (ty2 * TEX_SIZE + tx2) * 4;
+            if (crystalTexture.data[pi + 3] < 10) continue;
+            const i = (scrY * W + scrX) * 4;
+            pixelData[i] = Math.min(255, crystalTexture.data[pi] * br * pulse);
+            pixelData[i + 1] = Math.min(255, crystalTexture.data[pi + 1] * br * pulse);
+            pixelData[i + 2] = Math.min(255, crystalTexture.data[pi + 2] * br * pulse);
+            pixelData[i + 3] = 255;
+          }
+        }
+      }
+    }
+
+    /**
+     * Renders the scary 3D monster sprite using pre-sampled pixel buffer.
+     * The monsterPixels array was built once from the offscreen canvas.
+     * Eye brightness animates over time for a "living" effect.
+     */
+    function renderMonsterSprite(px, py, pa, zBuf) {
+      if (!monsterPixels) return;
+      const dx = monster.x - px, dy = monster.y - py;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist < 0.1 || dist > MAX_DEPTH) return;
+      let rel = Math.atan2(dy, dx) - pa;
+      while (rel > Math.PI) rel -= Math.PI * 2;
+      while (rel < -Math.PI) rel += Math.PI * 2;
+      if (Math.abs(rel) > HALF_FOV + 0.2) return;
+      const sX = Math.floor((0.5 + rel / FOV) * W);
+      const sprH = Math.max(1, Math.floor(H / dist));
+      const sprW = sprH;
+      const dTop = Math.floor(HALF_H - sprH / 2);
+      const dLeft = sX - Math.floor(sprW / 2);
+      if (dLeft >= W || dLeft + sprW <= 0) return;
+      const fog = Math.min(1, dist / MAX_DEPTH);
+      const br = Math.max(0, (1 - fog * fog)) * flickerBrightness;
+
+      // Eye pulse animation — brighten red channel cyclically
+      const eyePulse = 0.8 + Math.sin(frameCount * 0.12) * 0.2;
+
+      for (let sx = 0; sx < sprW; sx++) {
+        const scrX = dLeft + sx;
+        if (scrX < 0 || scrX >= W) continue;
+        if (zBuf[scrX] < dist) continue;
+        const tu = Math.floor((sx / sprW) * MSPRITE_SIZE);
+        for (let sy = 0; sy < sprH; sy++) {
+          const scrY = dTop + sy;
+          if (scrY < 0 || scrY >= H) continue;
+          const tv = Math.floor((sy / sprH) * MSPRITE_SIZE);
+          const pi = (tv * MSPRITE_SIZE + tu) * 4;
+          if (monsterPixels[pi + 3] < 8) continue;  // transparent pixel skip
+          const i = (scrY * W + scrX) * 4;
+          // If pixel is predominantly red (eye area), animate it
+          const isEyePx = (monsterPixels[pi] > monsterPixels[pi + 1] * 2.5 && monsterPixels[pi] > 60);
+          const ep = isEyePx ? eyePulse : 1;
+          pixelData[i] = Math.min(255, Math.floor(monsterPixels[pi] * br * ep));
+          pixelData[i + 1] = Math.min(255, Math.floor(monsterPixels[pi + 1] * br));
+          pixelData[i + 2] = Math.min(255, Math.floor(monsterPixels[pi + 2] * br));
+          pixelData[i + 3] = 255;
+        }
+      }
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    // §7  MINIMAP
+    // ──────────────────────────────────────────────────────────────
+    const MM_W = 152, MM_H = 166, MM_RANGE = 10;
+
+    function renderMinimap() {
+      const mc = minimapCtx;
+      mc.clearRect(0, 0, MM_W, MM_H);
+      const cx = MM_W / 2, cy = MM_H / 2;
+      const scale = MM_W / (MM_RANGE * 2);
+
+      mc.fillStyle = 'rgba(5,5,18,0.92)';
+      mc.fillRect(0, 0, MM_W, MM_H);
+
+      mc.strokeStyle = 'rgba(40,40,80,0.3)'; mc.lineWidth = 0.5;
+      for (let g = -MM_RANGE; g <= MM_RANGE; g++) {
+        mc.beginPath(); mc.moveTo(cx + g * scale, 0); mc.lineTo(cx + g * scale, MM_H); mc.stroke();
+        mc.beginPath(); mc.moveTo(0, cy + g * scale); mc.lineTo(MM_W, cy + g * scale); mc.stroke();
+      }
+
+      mc.save();
+      mc.translate(cx, cy);
+      mc.rotate(-player.angle - Math.PI / 2);
+
+      const pX = player.x, pY = player.y;
+      const rng = MM_RANGE + 2;
+      for (let ty = Math.floor(pY - rng); ty <= Math.ceil(pY + rng); ty++) {
+        for (let tx = Math.floor(pX - rng); tx <= Math.ceil(pX + rng); tx++) {
+          if (tx < 0 || tx >= MAP_W || ty < 0 || ty >= MAP_H) continue;
+          const cell = map[ty * MAP_W + tx];
+          if (cell === 0) continue;
+          const wx = (tx - pX) * scale, wy = (ty - pY) * scale;
+          if (cell === 2) { mc.fillStyle = 'rgba(0,255,140,0.9)'; mc.shadowColor = '#00ff90'; mc.shadowBlur = 6; }
+          else { mc.fillStyle = 'rgba(80,80,130,0.75)'; mc.shadowBlur = 0; }
+          mc.fillRect(wx, wy, scale + 0.5, scale + 0.5);
+        }
+      }
+      mc.shadowBlur = 0;
+
+      // Crystals
+      for (const c of crystals) {
+        if (c.collected) continue;
+        const wx = (c.x - pX) * scale, wy = (c.y - pY) * scale;
+        const p = 0.6 + Math.sin(frameCount * 0.1 + c.x) * 0.4;
+        mc.beginPath(); mc.arc(wx, wy, 3.5, 0, Math.PI * 2);
+        mc.fillStyle = `rgba(255,50,80,${p})`; mc.shadowColor = '#ff1144'; mc.shadowBlur = 8;
+        mc.fill(); mc.shadowBlur = 0;
+      }
+
+      // Monster blip
+      const showM = revealActive || monster.alertLevel >= 1;
+      if (showM) {
+        const mx2 = (monster.x - pX) * scale, my2 = (monster.y - pY) * scale;
+        // Pulse ring — Math.abs ensures radius NEVER goes negative (freeze bug fix)
+        const ring = 0.2 + Math.abs(Math.sin(frameCount * 0.12)) * 0.8;
+        const ra = (0.3 + ring * 0.5).toFixed(2);
+        mc.beginPath(); mc.arc(mx2, my2, 8 * ring, 0, Math.PI * 2);
+        mc.strokeStyle = `rgba(255,${revealActive ? 200 : 80},0,${ra})`;
+        mc.lineWidth = 1.5; mc.stroke();
+        mc.beginPath(); mc.arc(mx2, my2, 4, 0, Math.PI * 2);
+        mc.fillStyle = revealActive ? '#ff4400' : '#ff2200';
+        mc.shadowColor = '#ff2200'; mc.shadowBlur = 12; mc.fill(); mc.shadowBlur = 0;
+        if (monster.alertLevel === 2) {
+          mc.save(); mc.translate(mx2, my2);
+          mc.rotate(Math.atan2(-(pY - monster.y), -(pX - monster.x)));
+          mc.beginPath(); mc.moveTo(10, 0); mc.lineTo(6, -4); mc.lineTo(6, 4);
+          mc.closePath(); mc.fillStyle = 'rgba(255,80,0,0.8)'; mc.fill();
+          mc.restore();
+        }
+      }
+      mc.restore();
+
+      // Player marker
+      mc.save(); mc.translate(cx, cy);
+      mc.beginPath();
+      mc.moveTo(0, -9); mc.lineTo(-5, 5); mc.lineTo(0, 2); mc.lineTo(5, 5); mc.closePath();
+      mc.fillStyle = '#fff'; mc.shadowColor = 'rgba(255,255,255,0.8)'; mc.shadowBlur = 8; mc.fill();
+      mc.shadowBlur = 0;
+      mc.beginPath(); mc.arc(0, 0, 3, 0, Math.PI * 2); mc.fillStyle = '#44aaff'; mc.fill();
+      mc.restore();
+
+      // Edge fade
+      const eg = mc.createRadialGradient(cx, cy, MM_W * 0.35, cx, cy, MM_W * 0.52);
+      eg.addColorStop(0, 'rgba(0,0,0,0)'); eg.addColorStop(1, 'rgba(0,0,10,0.85)');
+      mc.fillStyle = eg; mc.fillRect(0, 0, MM_W, MM_H);
+      // Scanlines
+      mc.fillStyle = 'rgba(0,0,0,0.12)';
+      for (let sy = 0; sy < MM_H; sy += 2)mc.fillRect(0, sy, MM_W, 1);
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    // §8  WEB AUDIO API — HORROR SOUNDSCAPE
+    // ──────────────────────────────────────────────────────────────
+    let audioCtx = null, masterGain = null, monsterGrowlGain = null;
+    let audioMuted = false;
+
+    function initAudio() {
+      if (audioCtx) { if (audioCtx.state === 'suspended') audioCtx.resume(); return; }
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return;
+      audioCtx = new AC();
+      masterGain = audioCtx.createGain();
+      masterGain.gain.value = 0.55;
+      masterGain.connect(audioCtx.destination);
+      startBGM();
+    }
+
+    function makeDistortionCurve(amount) {
+      const n = 256, curve = new Float32Array(n);
+      for (let i = 0; i < n; i++) { const x = (i * 2) / n - 1; curve[i] = ((Math.PI + amount) * x) / (Math.PI + amount * Math.abs(x)); }
+      return curve;
+    }
+
+    function startBGM() {
+      // ── Layer 1: Low detuned drone (2 oscillators) ──
+      const droneG = audioCtx.createGain();
+      droneG.gain.value = 0.07;
+      for (const [fr, dt] of [[55, 0], [55.8, 0], [110, 4]]) {
+        const o = audioCtx.createOscillator();
+        o.type = 'sawtooth'; o.frequency.value = fr; o.detune.value = dt;
+        const lp = audioCtx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 180; lp.Q.value = 2;
+        o.connect(lp); lp.connect(droneG); o.start();
+      }
+      droneG.connect(masterGain);
+
+      // ── Layer 2: Low rumble noise ──
+      const bSize = audioCtx.sampleRate * 3;
+      const nBuf = audioCtx.createBuffer(1, bSize, audioCtx.sampleRate);
+      const nd = nBuf.getChannelData(0);
+      for (let i = 0; i < bSize; i++)nd[i] = Math.random() * 2 - 1;
+      const nSrc = audioCtx.createBufferSource();
+      nSrc.buffer = nBuf; nSrc.loop = true;
+      const nFilt = audioCtx.createBiquadFilter(); nFilt.type = 'bandpass'; nFilt.frequency.value = 70; nFilt.Q.value = 0.4;
+      const nGain = audioCtx.createGain(); nGain.gain.value = 0.055;
+      nSrc.connect(nFilt); nFilt.connect(nGain); nGain.connect(masterGain); nSrc.start();
+
+      // ── Layer 3: Monster growl (gain controlled by proximity) ──
+      monsterGrowlGain = audioCtx.createGain(); monsterGrowlGain.gain.value = 0;
+      const gBuf = audioCtx.createBuffer(1, audioCtx.sampleRate * 2, audioCtx.sampleRate);
+      const gd = gBuf.getChannelData(0);
+      for (let i = 0; i < gd.length; i++) gd[i] = (Math.random() * 2 - 1) * Math.abs(Math.sin(i / gd.length * Math.PI * 6));
+      const gSrc = audioCtx.createBufferSource(); gSrc.buffer = gBuf; gSrc.loop = true;
+      const gFilt = audioCtx.createBiquadFilter(); gFilt.type = 'bandpass'; gFilt.frequency.value = 110; gFilt.Q.value = 4;
+      const gDist = audioCtx.createWaveShaper(); gDist.curve = makeDistortionCurve(250);
+      gSrc.connect(gFilt); gFilt.connect(gDist); gDist.connect(monsterGrowlGain); monsterGrowlGain.connect(masterGain);
+      gSrc.start();
+
+      // ── Layer 4: Occasional random ambient creaks ──
+      scheduleCreak();
+    }
+
+    function scheduleCreak() {
+      if (!audioCtx) return;
+      setTimeout(() => {
+        if (gameState === 'playing') playCreak();
+        scheduleCreak();
+      }, 3000 + Math.random() * 9000);
+    }
+
+    function playCreak() {
+      if (!audioCtx) return;
+      const o = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      const f = audioCtx.createBiquadFilter();
+      o.type = 'sawtooth'; o.frequency.value = 150 + Math.random() * 400;
+      f.type = 'bandpass'; f.frequency.value = 300 + Math.random() * 300; f.Q.value = 10;
+      g.gain.value = 0.06; g.gain.setTargetAtTime(0, audioCtx.currentTime + 0.04, 0.25);
+      o.connect(f); f.connect(g); g.connect(masterGain);
+      o.start(); o.stop(audioCtx.currentTime + 1.2);
+    }
+
+    function playCrystalPickup() {
+      if (!audioCtx) return;
+      [523, 659, 784, 1047].forEach((fr, k) => {
+        const o = audioCtx.createOscillator(); const g = audioCtx.createGain();
+        o.type = 'sine'; o.frequency.value = fr;
+        const t = audioCtx.currentTime + k * 0.09;
+        g.gain.setValueAtTime(0, t);
+        g.gain.linearRampToValueAtTime(0.14, t + 0.02);
+        g.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
+        o.connect(g); g.connect(masterGain);
+        o.start(t); o.stop(t + 0.55);
+      });
+    }
+
+    function playFootstep() {
+      if (!audioCtx) return;
+      const bLen = Math.floor(audioCtx.sampleRate * 0.07);
+      const buf = audioCtx.createBuffer(1, bLen, audioCtx.sampleRate);
+      const d = buf.getChannelData(0);
+      for (let i = 0; i < bLen; i++)d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / bLen, 2.2);
+      const src = audioCtx.createBufferSource(); src.buffer = buf;
+      const flt = audioCtx.createBiquadFilter(); flt.type = 'lowpass'; flt.frequency.value = 350;
+      const g = audioCtx.createGain(); g.gain.value = 0.13;
+      src.connect(flt); flt.connect(g); g.connect(masterGain); src.start();
+    }
+
+    function playDeath() {
+      if (!audioCtx) return;
+      const o = audioCtx.createOscillator(); const g = audioCtx.createGain();
+      o.type = 'sawtooth'; o.frequency.value = 780;
+      o.frequency.exponentialRampToValueAtTime(55, audioCtx.currentTime + 1.8);
+      g.gain.value = 0.28; g.gain.setTargetAtTime(0, audioCtx.currentTime + 0.6, 0.5);
+      const dist = audioCtx.createWaveShaper(); dist.curve = makeDistortionCurve(400);
+      o.connect(dist); dist.connect(g); g.connect(masterGain); o.start(); o.stop(audioCtx.currentTime + 2.5);
+      // Low thud
+      const bLen = Math.floor(audioCtx.sampleRate * 0.4);
+      const buf = audioCtx.createBuffer(1, bLen, audioCtx.sampleRate);
+      const dd = buf.getChannelData(0);
+      for (let i = 0; i < bLen; i++)dd[i] = Math.random() * 2 - 1;
+      const ns = audioCtx.createBufferSource(); ns.buffer = buf;
+      const nf = audioCtx.createBiquadFilter(); nf.type = 'lowpass'; nf.frequency.value = 120;
+      const ng = audioCtx.createGain(); ng.gain.value = 0.45; ng.gain.setTargetAtTime(0, audioCtx.currentTime + 0.08, 0.3);
+      ns.connect(nf); nf.connect(ng); ng.connect(masterGain); ns.start();
+    }
+
+    function playWin() {
+      if (!audioCtx) return;
+      [262, 330, 392, 523, 659, 784].forEach((fr, k) => {
+        const o = audioCtx.createOscillator(); const g = audioCtx.createGain();
+        o.type = 'sine'; o.frequency.value = fr;
+        const t = audioCtx.currentTime + k * 0.13;
+        g.gain.setValueAtTime(0, t);
+        g.gain.linearRampToValueAtTime(0.1, t + 0.04);
+        g.gain.exponentialRampToValueAtTime(0.001, t + 0.7);
+        o.connect(g); g.connect(masterGain); o.start(t); o.stop(t + 0.8);
+      });
+    }
+
+    function updateMonsterAudio() {
+      if (!audioCtx || !monsterGrowlGain) return;
+      const d = dist2D(player.x, player.y, monster.x, monster.y);
+      const vol = monster.alertLevel >= 1 ? Math.max(0, 0.45 - d * 0.04) : 0;
+      monsterGrowlGain.gain.setTargetAtTime(vol, audioCtx.currentTime, 0.4);
+    }
+
+    function toggleAudio() {
+      if (!audioCtx) return;
+      audioMuted = !audioMuted;
+      masterGain.gain.setTargetAtTime(audioMuted ? 0 : 0.55, audioCtx.currentTime, 0.2);
+      document.getElementById('audio-btn').textContent = (audioMuted ? '🔇' : '🔊') + ' AUDIO';
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    // §9  PLAYER
+    // ──────────────────────────────────────────────────────────────
+    function initPlayer() {
+      const p = randomOpen(0, undefined, undefined);
+      player = { x: p.x, y: p.y, angle: Math.random() * Math.PI * 2, stamina: 1, sanity: 1, sprinting: false };
+    }
+
+    function movePlayer(dx, dy) {
+      const nx = player.x + dx, ny = player.y + dy, r = PLAYER_RADIUS;
+      if (!isWall(nx, ny) && !isWall(nx + r, ny) && !isWall(nx - r, ny) && !isWall(nx, ny + r) && !isWall(nx, ny - r)) { player.x = nx; player.y = ny; return; }
+      if (!isWall(nx, player.y) && !isWall(nx + r, player.y) && !isWall(nx - r, player.y) && !isWall(nx, player.y + r) && !isWall(nx, player.y - r)) { player.x = nx; return; }
+      if (!isWall(player.x, ny) && !isWall(player.x + r, ny) && !isWall(player.x - r, ny) && !isWall(player.x, ny + r) && !isWall(player.x, ny - r)) { player.y = ny; }
+    }
+
+    function updatePlayer(dt) {
+      const sprint = (keys['ShiftLeft'] || keys['ShiftRight']) && player.stamina > 0;
+      player.sprinting = sprint;
+      const spd = MOVE_SPEED * (sprint ? SPRINT_MULT : 1);
+
+      // Smooth mouse (no blink)
+      let mouseRot = rawMouseDX * MOUSE_SENSITIVITY;
+      mouseRot = Math.max(-MOUSE_MAX_PER_FRAME, Math.min(MOUSE_MAX_PER_FRAME, mouseRot));
+      rawMouseDX = 0;
+
+      let rot = 0;
+      if (keys['ArrowLeft'] || keys['KeyA']) rot -= ROT_SPEED;
+      if (keys['ArrowRight'] || keys['KeyD']) rot += ROT_SPEED;
+      rot += mouseRot;
+      player.angle += rot;
+
+      let mv = 0, strafe = 0;
+      if (keys['ArrowUp'] || keys['KeyW']) mv += spd;
+      if (keys['ArrowDown'] || keys['KeyS']) mv -= spd * 0.6;
+      if (keys['KeyQ']) strafe -= spd * 0.7;
+      if (keys['KeyE']) strafe += spd * 0.7;
+
+      const moving = mv !== 0 || strafe !== 0;
+      if (mv !== 0) movePlayer(Math.cos(player.angle) * mv, Math.sin(player.angle) * mv);
+      if (strafe !== 0) movePlayer(Math.cos(player.angle + Math.PI / 2) * strafe, Math.sin(player.angle + Math.PI / 2) * strafe);
+
+      // Stamina
+      if (sprint && moving) player.stamina = Math.max(0, player.stamina - STAMINA_DRAIN);
+      else player.stamina = Math.min(1, player.stamina + STAMINA_REGEN);
+
+      // Sanity
+      const dM = dist2D(player.x, player.y, monster.x, monster.y);
+      let sD = SANITY_DRAIN;
+      if (dM < MONSTER_ALERT_DIST) sD += SANITY_MONSTER * (1 - dM / MONSTER_ALERT_DIST);
+      if (dM < 3) sD += SANITY_MONSTER * 3;
+      if (raySurroundDark() < 2) sD += SANITY_DRAIN * SANITY_DARK_MUL;
+      player.sanity = Math.max(0, player.sanity - sD);
+
+      // Footsteps
+      if (moving && audioCtx) {
+        footstepCooldown--;
+        if (footstepCooldown <= 0) {
+          playFootstep();
+          footstepCooldown = sprint ? 12 : 22;
+        }
+      }
+
+      // Crystal pickup
+      for (const c of crystals) {
+        if (c.collected) continue;
+        if (dist2D(player.x, player.y, c.x, c.y) < CRYSTAL_PICKUP_RADIUS) {
+          c.collected = true; crystalCount++;
+          showCrystalNotify();
+          playCrystalPickup();
+        }
+      }
+
+      // Death check
+      if (dM < MONSTER_KILL_DIST) { triggerGameOver('The Entity has consumed you.'); return; }
+      if (player.sanity <= 0) { triggerGameOver('Your mind has shattered in the infinite halls.'); return; }
+
+      // ── WIN CHECK — distance to exit WALL tile centre (fix: was tile-exact) ──
+      // exitWallPos is the centre of the type-2 exit wall tile.
+      // Player touches it when within ~1.2 tiles (wall radius + player radius).
+      const dE = dist2D(player.x, player.y, exitWallPos.x, exitWallPos.y);
+      if (dE < 1.3) triggerWin();
+    }
+
+    function raySurroundDark() {
+      let mn = Infinity;
+      for (let i = 0; i < 4; i++) { const h = castRay(player.angle + (i / 4) * Math.PI * 2, player.x, player.y); if (h.dist < mn) mn = h.dist; }
+      return mn;
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    // §10  CRYSTAL REVEAL ABILITY
+    // ──────────────────────────────────────────────────────────────
+    function showCrystalNotify() {
+      document.getElementById('crystal-notify').style.opacity = '1';
+      crystalNotifyTimer = 180;
+      document.getElementById('ability-hud').style.opacity = '1';
+    }
+
+    function updateAbility() {
+      if (revealActive) { revealTimer--; if (revealTimer <= 0) { revealActive = false; revealCooldown = REVEAL_COOLDOWN; } }
+      else if (revealCooldown > 0) revealCooldown--;
+      if (crystalNotifyTimer > 0) { crystalNotifyTimer--; if (crystalNotifyTimer === 0) document.getElementById('crystal-notify').style.opacity = '0'; }
+      const revEl = document.getElementById('reveal-overlay');
+      revEl.style.opacity = revealActive ? (0.4 + Math.sin(frameCount * 0.12) * 0.2).toFixed(2) : '0';
+      const ah = document.getElementById('ability-hud');
+      if (ah.style.opacity !== '0') {
+        let fp;
+        if (revealActive) fp = (revealTimer / REVEAL_DURATION) * 100;
+        else if (revealCooldown > 0) fp = ((REVEAL_COOLDOWN - revealCooldown) / REVEAL_COOLDOWN) * 100;
+        else fp = 100;
+        document.getElementById('ability-timer-fill').style.width = fp + '%';
+      }
+    }
+
+    function activateReveal() {
+      if (crystalCount <= 0 || revealActive || revealCooldown > 0) return;
+      revealActive = true; revealTimer = REVEAL_DURATION; crystalCount--;
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    // §11  MONSTER AI
+    // ──────────────────────────────────────────────────────────────
+    function initMonster() {
+      const p = randomOpen(MAP_W * 0.4, player.x, player.y);
+      monster = { x: p.x, y: p.y, targetX: p.x, targetY: p.y, alertLevel: 0, wanderTimer: 0, speed: MONSTER_SPEED };
+    }
+
+    function updateMonster() {
+      const dP = dist2D(monster.x, monster.y, player.x, player.y);
+      const los = hasLoS(monster.x, monster.y, player.x, player.y);
+      if (dP < MONSTER_ALERT_DIST && los) { monster.alertLevel = 2; monster.targetX = player.x; monster.targetY = player.y; }
+      else if (dP < MONSTER_ALERT_DIST * 1.5 && los) {
+        monster.alertLevel = Math.max(monster.alertLevel, 1);
+        if (Math.random() < 0.02) { monster.targetX = player.x; monster.targetY = player.y; }
+      } else {
+        if (monster.alertLevel === 2 && Math.random() < 0.005) monster.alertLevel = 1;
+        if (monster.alertLevel === 1 && Math.random() < 0.003) monster.alertLevel = 0;
+      }
+      monster.wanderTimer--;
+      if (monster.wanderTimer <= 0 && monster.alertLevel < 2) {
+        monster.wanderTimer = MONSTER_WANDER_INTERVAL + Math.floor(Math.random() * 60);
+        const wp = randomOpen(0, undefined, undefined);
+        monster.targetX = wp.x; monster.targetY = wp.y;
+      }
+      const spd = monster.speed * (monster.alertLevel === 2 ? 1.6 : 0.8);
+      const tdx = monster.targetX - monster.x, tdy = monster.targetY - monster.y;
+      const td = Math.sqrt(tdx * tdx + tdy * tdy);
+      if (td > 0.1) {
+        const nx = (tdx / td) * spd, ny = (tdy / td) * spd;
+        if (!isWall(monster.x + nx, monster.y + ny)) { monster.x += nx; monster.y += ny; }
+        else if (!isWall(monster.x + nx, monster.y)) monster.x += nx;
+        else if (!isWall(monster.x, monster.y + ny)) monster.y += ny;
+        else monster.wanderTimer = 0;
+      }
+    }
+
+    function hasLoS(x1, y1, x2, y2) {
+      const dx = x2 - x1, dy = y2 - y1, d = Math.sqrt(dx * dx + dy * dy), steps = Math.ceil(d / 0.1);
+      for (let i = 1; i < steps; i++) { const t = i / steps; if (isWall(x1 + dx * t, y1 + dy * t)) return false; }
+      return true;
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    // §12  VISUAL EFFECTS
+    // ──────────────────────────────────────────────────────────────
+    function updateFlicker() {
+      flickerTimer--;
+      if (flickerTimer <= 0) {
+        const r = Math.random();
+        if (r < 0.04) { flickerBrightness = 0.15 + Math.random() * 0.25; flickerTimer = 2 + Math.floor(Math.random() * 6); }
+        else if (r < 0.12) { flickerBrightness = 0.6 + Math.random() * 0.25; flickerTimer = 1 + Math.floor(Math.random() * 4); }
+        else { flickerBrightness = 0.88 + Math.random() * 0.12; flickerTimer = 8 + Math.floor(Math.random() * 20); }
+      }
+    }
+
+    function updateShake() {
+      const d = dist2D(player.x, player.y, monster.x, monster.y);
+      const prox = Math.max(0, 1 - d / MONSTER_ALERT_DIST);
+      if (monster.alertLevel === 2 && prox > 0.3) shakeIntensity = prox * 0.12;
+      else if (monster.alertLevel >= 1) shakeIntensity = prox * 0.04;
+      else shakeIntensity *= 0.8;
+      shakeX = (Math.random() - 0.5) * 2 * shakeIntensity;
+      shakeY = (Math.random() - 0.5) * 2 * shakeIntensity;
+    }
+
+    function updateNoise() {
+      const d = dist2D(player.x, player.y, monster.x, monster.y);
+      const tgt = monster.alertLevel === 2 ? Math.max(0, 0.18 - d * 0.015) : 0;
+      noiseAlpha += (tgt - noiseAlpha) * 0.08;
+      if (noiseAlpha < 0.005) { noiseCanvas.style.opacity = 0; return; }
+      noiseCanvas.style.opacity = noiseAlpha;
+      if (!noiseImageData) noiseImageData = noiseCtx.createImageData(W, H);
+      const nd = noiseImageData;
+      for (let i = 0; i < nd.data.length; i += 4) { const v = Math.random() * 255; nd.data[i] = nd.data[i + 1] = nd.data[i + 2] = v; nd.data[i + 3] = 180; }
+      noiseCtx.putImageData(nd, 0, 0);
+    }
+
+    function updateHUD() {
+      document.getElementById('sanity-fill').style.width = (player.sanity * 100).toFixed(1) + '%';
+      document.getElementById('stamina-fill').style.width = (player.stamina * 100).toFixed(1) + '%';
+      const sH = Math.floor(player.sanity * 200);
+      document.getElementById('sanity-fill').style.background = `linear-gradient(90deg,hsl(${sH},70%,25%),hsl(${sH + 20},80%,55%))`;
+      const dirs = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+      const deg = ((player.angle * 180 / Math.PI) % 360 + 360) % 360;
+      document.getElementById('compass').textContent = dirs[Math.floor((deg + 22.5) / 45) % 8];
+      document.getElementById('coords').textContent = player.x.toFixed(1) + ' / ' + player.y.toFixed(1);
+      const warn = document.getElementById('entity-warning');
+      warn.style.opacity = monster.alertLevel === 2 ? (0.6 + Math.sin(frameCount * 0.15) * 0.4) : 0;
+      const vEl = document.getElementById('vignette');
+      if (monster.alertLevel === 2) {
+        const p = 0.5 + Math.sin(frameCount * 0.08) * 0.5;
+        const prox = Math.max(0, 1 - dist2D(player.x, player.y, monster.x, monster.y) / 8);
+        vEl.style.opacity = 1 + p * prox * 0.6;
+      } else vEl.style.opacity = 1;
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    // §13  GAME STATE
+    // ──────────────────────────────────────────────────────────────
+    function initGame() {
+      map = generateMap();
+
+      // ── Place exit ──
+      // Pick a floor tile far from centre
+      const ep = randomOpen(MAP_W * 0.5, MAP_W / 2, MAP_H / 2);
+      exitPos.x = Math.floor(ep.x); exitPos.y = Math.floor(ep.y);
+
+      // Find an adjacent WALL tile and mark it type 2 (exit wall)
+      const adj = [
+        { x: exitPos.x + 1, y: exitPos.y }, { x: exitPos.x - 1, y: exitPos.y },
+        { x: exitPos.x, y: exitPos.y + 1 }, { x: exitPos.x, y: exitPos.y - 1 }
+      ];
+      let placed = false;
+      for (const a of adj) {
+        if (a.x >= 0 && a.x < MAP_W && a.y >= 0 && a.y < MAP_H && map[a.y * MAP_W + a.x] === 1) {
+          map[a.y * MAP_W + a.x] = 2;
+          // Store EXIT WALL centre for distance-based hitbox
+          exitWallPos.x = a.x + 0.5;
+          exitWallPos.y = a.y + 0.5;
+          placed = true; break;
+        }
+      }
+      if (!placed) {
+        // Fallback: use floor tile itself as the "exit" detection point
+        exitWallPos.x = exitPos.x + 0.5;
+        exitWallPos.y = exitPos.y + 0.5;
+      }
+
+      // Textures & sprites
+      wallTexture = buildWallTexture();
+      exitTexture = buildExitTexture();
+      crystalTexture = buildCrystalTexture();
+      buildMonsterSprite();
+
+      // Entities
+      initPlayer();
+      initMonster();
+
+      // Crystals spread away from player spawn
+      crystals = [];
+      for (let k = 0; k < CRYSTAL_COUNT; k++) {
+        const cp = randomOpen(8, player.x, player.y);
+        crystals.push({ x: cp.x, y: cp.y, collected: false });
+      }
+      crystalCount = 0; revealActive = false; revealTimer = 0; revealCooldown = 0; crystalNotifyTimer = 0;
+
+      pixelBuffer = new ImageData(W, H); pixelData = pixelBuffer.data;
+      flickerBrightness = 1; flickerTimer = 0;
+      shakeX = shakeY = shakeIntensity = 0;
+      noiseAlpha = 0; noiseImageData = null;
+      frameCount = 0; rawMouseDX = 0; footstepCooldown = 0;
+    }
+
+    function startGame() {
+      document.getElementById('start-screen').style.display = 'none';
+      document.getElementById('gameover-screen').style.display = 'none';
+      document.getElementById('win-screen').style.display = 'none';
+      document.getElementById('hud').style.display = 'block';
+      document.getElementById('ability-hud').style.opacity = '0';
+      document.getElementById('crystal-notify').style.opacity = '0';
+      document.getElementById('reveal-overlay').style.opacity = '0';
+      initGame();
+      initAudio();
+      gameState = 'playing';
+      if (animFrameId) cancelAnimationFrame(animFrameId);
+      lastTime = performance.now();
+      animFrameId = requestAnimationFrame(gameLoop);
+    }
+
+    function triggerGameOver(msg) {
+      gameState = 'gameover';
+      playDeath();
+      document.getElementById('hud').style.display = 'none';
+      document.getElementById('gameover-msg').textContent = msg;
+      document.getElementById('gameover-screen').style.display = 'flex';
+      document.getElementById('reveal-overlay').style.opacity = '0';
+      if (pointerLocked) document.exitPointerLock();
+    }
+
+    function triggerWin() {
+      gameState = 'win';
+      playWin();
+      document.getElementById('hud').style.display = 'none';
+      document.getElementById('win-screen').style.display = 'flex';
+      document.getElementById('reveal-overlay').style.opacity = '0';
+      if (pointerLocked) document.exitPointerLock();
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    // §14  MAIN GAME LOOP
+    // ──────────────────────────────────────────────────────────────
+    function gameLoop(ts) {
+      if (gameState !== 'playing') return;
+      const dt = Math.min((ts - lastTime) / 1000, 0.05);
+      lastTime = ts; frameCount++;
+
+      try {
+        updatePlayer(dt);
+        if (gameState !== 'playing') return;
+        updateMonster();
+        updateFlicker();
+        updateShake();
+        updateAbility();
+        updateMonsterAudio();
+
+        renderFrame();
+        renderMinimap();
+        updateNoise();
+        updateHUD();
+      } catch (e) {
+        console.warn('[Backrooms] gameLoop error:', e);
+      }
+
+      animFrameId = requestAnimationFrame(gameLoop);
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    // §15  INPUT
+    // ──────────────────────────────────────────────────────────────
+    function setupInput() {
+      document.addEventListener('keydown', e => {
+        keys[e.code] = true;
+        if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(e.code)) e.preventDefault();
+        if (e.code === 'KeyF' && gameState === 'playing') activateReveal();
+      });
+      document.addEventListener('keyup', e => { keys[e.code] = false; });
+
+      canvas.addEventListener('click', () => {
+        if (gameState === 'playing') canvas.requestPointerLock();
+        initAudio(); // Resume audio context on click (browser autoplay policy)
+      });
+
+      document.addEventListener('pointerlockchange', () => {
+        pointerLocked = document.pointerLockElement === canvas;
+        rawMouseDX = 0;
+      });
+      document.addEventListener('mousemove', e => {
+        if (pointerLocked) rawMouseDX += e.movementX;
+      });
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    // §16  UTILITY
+    // ──────────────────────────────────────────────────────────────
+    function dist2D(x1, y1, x2, y2) { return Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2); }
+
+    // ──────────────────────────────────────────────────────────────
+    // §17  START SCREEN PREVIEW
+    // ──────────────────────────────────────────────────────────────
+    function animateStartScreen() {
+      if (gameState !== 'start') return;
+      if (!map || map.length === 0) {
+        map = generateMap();
+        wallTexture = buildWallTexture();
+        exitTexture = buildExitTexture();
+        crystalTexture = buildCrystalTexture();
+        pixelBuffer = new ImageData(W, H); pixelData = pixelBuffer.data;
+      }
+      const pa = performance.now() * 0.0003;
+      for (let y = 0; y < H; y++) {
+        let cr, cg, cb;
+        if (y < HALF_H) { const t = y / HALF_H;[cr, cg, cb] = lerpCol(COL_CEILING_TOP, COL_CEILING_BTM, t); }
+        else { const t = (y - HALF_H) / HALF_H;[cr, cg, cb] = lerpCol(COL_FLOOR_TOP, COL_FLOOR_BTM, t); }
+        for (let x = 0; x < W; x++) { const i = (y * W + x) * 4; pixelData[i] = cr * 0.4; pixelData[i + 1] = cg * 0.4; pixelData[i + 2] = cb * 0.4; pixelData[i + 3] = 255; }
+      }
+      for (let col = 0; col < W; col++) {
+        const ra = pa - HALF_FOV + (col / W) * FOV;
+        const h = castRay(ra, 3.5, 3.5);
+        const { dist, wallX, side } = h;
+        const wH = Math.floor(H / dist);
+        const wT = Math.floor(HALF_H - wH / 2), wB = Math.floor(HALF_H + wH / 2);
+        const fog = Math.min(1, dist / MAX_DEPTH), br = (1 - fog * fog) * 0.35 * (side === 1 ? 0.7 : 1);
+        for (let y = wT; y < wB; y++) {
+          if (y < 0 || y >= H) continue;
+          const tv = (y - wT) / wH;
+          const [tr, tg, tb] = sampleTex(wallTexture, wallX, tv);
+          const i = (y * W + col) * 4;
+          pixelData[i] = tr * br + COL_FOG[0] * (1 - br);
+          pixelData[i + 1] = tg * br + COL_FOG[1] * (1 - br);
+          pixelData[i + 2] = tb * br + COL_FOG[2] * (1 - br);
+          pixelData[i + 3] = 255;
+        }
+      }
+      ctx.putImageData(pixelBuffer, 0, 0);
+      ctx.fillStyle = 'rgba(0,0,0,0.55)'; ctx.fillRect(0, 0, W, H);
+      requestAnimationFrame(animateStartScreen);
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    // §18  INIT
+    // ──────────────────────────────────────────────────────────────
+    function init() {
+      canvas = document.getElementById('gameCanvas');
+      ctx = canvas.getContext('2d', { willReadFrequently: true });
+      noiseCanvas = document.getElementById('noise');
+      noiseCtx = noiseCanvas.getContext('2d');
+      minimapCanvas = document.getElementById('minimap-canvas');
+      minimapCtx = minimapCanvas.getContext('2d');
+
+      setupInput();
+
+      document.getElementById('start-btn').addEventListener('click', startGame);
+      document.getElementById('restart-btn-go').addEventListener('click', startGame);
+      document.getElementById('restart-btn-win').addEventListener('click', startGame);
+      document.getElementById('audio-btn').addEventListener('click', toggleAudio);
+      
+      document.getElementById('menu-btn-start').addEventListener('click', () => { window.location.href = 'index.html'; });
+      document.getElementById('menu-btn-go').addEventListener('click', () => { window.location.href = 'index.html'; });
+      document.getElementById('menu-btn-win').addEventListener('click', () => { window.location.href = 'index.html'; });
+
+      requestAnimationFrame(animateStartScreen);
+    }
+
+    document.addEventListener('DOMContentLoaded', init);
+  </script>
+</body>
+
+</html>
